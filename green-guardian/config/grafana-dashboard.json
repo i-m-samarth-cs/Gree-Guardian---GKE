@@ -1,0 +1,47 @@
+{
+  "dashboard": {
+    "title": "Green Guardian - Energy Monitoring",
+    "panels": [
+      {
+        "title": "Total Energy Consumption",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(energy_consumption_kwh)",
+            "legendFormat": "Total Energy (kWh)"
+          }
+        ]
+      },
+      {
+        "title": "Carbon Emissions",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(carbon_emissions_kg)",
+            "legendFormat": "Carbon Emissions (kg CO2)"
+          }
+        ]
+      },
+      {
+        "title": "Energy by Pod",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "energy_consumption_kwh",
+            "legendFormat": "{{ pod }} ({{ namespace }})"
+          }
+        ]
+      },
+      {
+        "title": "Optimization Actions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(optimization_actions_total)",
+            "legendFormat": "Total Optimizations"
+          }
+        ]
+      }
+    ]
+  }
+}

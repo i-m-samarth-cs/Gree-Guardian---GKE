@@ -1,0 +1,38 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: green-guardian-dashboard
+  namespace: green-guardian
+spec:
+  selector:
+    matchLabels:
+      app: green-guardian-dashboard
+  template:
+    metadata:
+      labels:
+        app: green-guardian-dashboard
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: minikube # This is for Minikube
+      containers:
+      - name: dashboard
+        image: samarth78/green-guardian-dashboard:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        env:
+        - name: PROMETHEUS_URL
+          value: "http://prometheus:9090"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: green-guardian-dashboard
+  namespace: green-guardian
+spec:
+  selector:
+    app: green-guardian-dashboard
+  ports:
+  - port: 80
+    targetPort: 5000
+  type: LoadBalancer

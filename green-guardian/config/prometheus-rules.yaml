@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: green-guardian-rules
+  namespace: green-guardian
+spec:
+  groups:
+  - name: energy.rules
+    rules:
+    - alert: HighEnergyConsumption
+      expr: energy_consumption_kwh > 0.1
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High energy consumption detected"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is consuming {{ $value }} kWh"
+    
+    - alert: CarbonEmissionSpike
+      expr: increase(carbon_emissions_kg[5m]) > 0.05
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Carbon emission spike detected"
+        description: "Carbon emissions increased by {{ $value }} kg CO2 in the last 5 minutes"
+

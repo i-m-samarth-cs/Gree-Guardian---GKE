@@ -1,0 +1,18 @@
+# docker/Dockerfile.dashboard
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install Python dependencies
+RUN pip install flask==2.3.3 requests==2.31.0
+
+# Copy dashboard code
+COPY dashboard/ .
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash dashboard
+USER dashboard
+
+EXPOSE 5000
+
+CMD ["python", "app.py"]

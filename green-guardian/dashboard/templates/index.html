@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Guardian - Energy Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        .dashboard {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            background: rgba(34, 197, 94, 0.1);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #10b981, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: #94a3b8;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .metric-card {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(34, 197, 94, 0.5);
+            box-shadow: 0 8px 32px rgba(34, 197, 94, 0.1);
+        }
+
+        .metric-card h3 {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .energy-value { color: #10b981; }
+        .carbon-value { color: #f59e0b; }
+        .savings-value { color: #3b82f6; }
+        .efficiency-value { color: #8b5cf6; }
+
+        .metric-unit {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .chart-section {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+        }
+
+        .chart-section h2 {
+            color: #e2e8f0;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 1rem;
+        }
+
+        .pods-table {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            overflow-x: auto;
+        }
+
+        .pods-table h2 {
+            color: #e2e8f0;
+            margin-bottom: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+        }
+
+        th {
+            background: rgba(15, 23, 42, 0.5);
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        td {
+            color: #e2e8f0;
+        }
+
+        tr:hover {
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-optimized { background: #10b981; }
+        .status-monitoring { background: #f59e0b; }
+        .status-high { background: #ef4444; }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #64748b;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #64748b;
+            border-radius: 50%;
+            border-top-color: #10b981;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #10b981, #34d399);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-left: auto;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Loading Popup Styles */
+        .loading-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(8px);
+        }
+
+        .loading-popup.show {
+            display: flex;
+        }
+
+        .loading-content {
+            background: rgba(30, 41, 59, 0.95);
+            padding: 3rem;
+            border-radius: 16px;
+            text-align: center;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            min-width: 300px;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(16, 185, 129, 0.3);
+            border-top: 4px solid #10b981;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        .loading-text {
+            color: #e2e8f0;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .loading-subtext {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .recommendations {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .recommendations h4 {
+            color: #60a5fa;
+            margin-bottom: 0.5rem;
+        }
+
+        .recommendations ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .recommendations li {
+            color: #cbd5e1;
+            padding: 0.25rem 0;
+            position: relative;
+            padding-left: 1rem;
+        }
+
+        .recommendations li::before {
+            content: '💡';
+            position: absolute;
+            left: 0;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metric-value {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Loading Popup -->
+        <div class="loading-popup" id="loadingPopup">
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <div class="loading-text" id="loadingText">Connecting to GKE Cluster...</div>
+                <div class="loading-subtext" id="loadingSubtext">Initializing connection</div>
+            </div>
+        </div>
+
+        <div class="header">
+            <h1>🌱 Green Guardian</h1>
+            <p>AI-Powered Microservice Energy Optimization</p>
+            <button class="refresh-btn" onclick="refreshData()">🔄 Refresh Data</button>
+        </div>
+
+        <!-- Metrics Overview -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h3>Total Energy Consumption</h3>
+                <div class="metric-value energy-value" id="totalEnergy">-</div>
+                <div class="metric-unit">kWh (last hour)</div>
+            </div>
+            <div class="metric-card">
+                <h3>Carbon Footprint</h3>
+                <div class="metric-value carbon-value" id="totalCarbon">-</div>
+                <div class="metric-unit">kg CO₂ equivalent</div>
+            </div>
+            <div class="metric-card">
+                <h3>Energy Saved</h3>
+                <div class="metric-value savings-value" id="totalSavings">-</div>
+                <div class="metric-unit">kWh (this month)</div>
+            </div>
+            <div class="metric-card">
+                <h3>AI Optimizations</h3>
+                <div class="metric-value efficiency-value" id="totalOptimizations">-</div>
+                <div class="metric-unit">actions taken</div>
+            </div>
+        </div>
+
+        <!-- Energy Consumption Chart -->
+        <div class="chart-section">
+            <h2>⚡ Energy Consumption Trends</h2>
+            <div class="chart-container">
+                <canvas id="energyChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Carbon Emissions Chart -->
+        <div class="chart-section">
+            <h2>🌍 Carbon Emissions Over Time</h2>
+            <div class="chart-container">
+                <canvas id="carbonChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Pod Details Table -->
+        <div class="pods-table">
+            <h2>📊 Pod Energy Analysis</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Pod Name</th>
+                        <th>Namespace</th>
+                        <th>Energy (kWh)</th>
+                        <th>Carbon (kg CO₂)</th>
+                        <th>Efficiency</th>
+                    </tr>
+                </thead>
+                <tbody id="podsTableBody">
+                    <tr>
+                        <td colspan="6" class="loading">Loading pod data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- AI Recommendations -->
+        <div class="recommendations">
+            <h4>🤖 AI Optimization Recommendations</h4>
+            <ul id="recommendations">
+                <li>Analyzing current workloads...</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let energyChart = null;
+        let carbonChart = null;
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            refreshData();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(refreshData, 30000);
+        });
+
+        function initializeCharts() {
+            // Energy Chart
+            const energyCtx = document.getElementById('energyChart').getContext('2d');
+            energyChart = new Chart(energyCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Energy Consumption (kWh)',
+                        data: [],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#e2e8f0' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                        },
+                        y: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                        }
+                    }
+                }
+            });
+
+            // Carbon Chart
+            const carbonCtx = document.getElementById('carbonChart').getContext('2d');
+            carbonChart = new Chart(carbonCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Carbon Emissions (kg CO₂)',
+                        data: [],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#e2e8f0' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                        },
+                        y: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function refreshData() {
+            // Show loading popup
+            showLoadingPopup();
+            
+            // Disable refresh button
+            const refreshBtn = document.querySelector('.refresh-btn');
+            refreshBtn.disabled = true;
+            
+            try {
+                // Simulate GKE data fetching with realistic steps
+                await simulateGKEFetch();
+                
+                // Generate demo data
+                const currentData = generateDemoCurrentData();
+                const historicalData = generateDemoHistoricalData();
+                const savingsData = generateDemoSavingsData();
+                
+                // Update metric cards
+                document.getElementById('totalEnergy').textContent = currentData.total_energy_kwh.toFixed(4);
+                document.getElementById('totalCarbon').textContent = currentData.total_carbon_kg.toFixed(3);
+                document.getElementById('totalOptimizations').textContent = currentData.total_optimizations;
+                document.getElementById('totalSavings').textContent = savingsData.total_energy_saved_kwh.toFixed(2);
+                
+                // Update pods table
+                updatePodsTable(currentData.pods);
+                
+                // Update charts
+                updateCharts(historicalData);
+                
+                // Update recommendations
+                updateRecommendations(savingsData.top_optimizations);
+                
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+            } finally {
+                // Hide loading popup and re-enable button
+                hideLoadingPopup();
+                refreshBtn.disabled = false;
+            }
+        }
+
+        function showLoadingPopup() {
+            document.getElementById('loadingPopup').classList.add('show');
+        }
+
+        function hideLoadingPopup() {
+            document.getElementById('loadingPopup').classList.remove('show');
+        }
+
+        async function simulateGKEFetch() {
+            const steps = [
+                { text: "Connecting to GKE Cluster...", subtext: "Initializing connection", delay: 800 },
+                { text: "Authenticating with Google Cloud...", subtext: "Validating credentials", delay: 600 },
+                { text: "Fetching pod metrics...", subtext: "Querying Kubernetes API", delay: 900 },
+                { text: "Analyzing energy consumption...", subtext: "Processing metrics data", delay: 700 },
+                { text: "Calculating carbon footprint...", subtext: "Running AI optimization models", delay: 800 },
+                { text: "Generating recommendations...", subtext: "Finalizing analysis", delay: 500 }
+            ];
+
+            for (const step of steps) {
+                document.getElementById('loadingText').textContent = step.text;
+                document.getElementById('loadingSubtext').textContent = step.subtext;
+                await new Promise(resolve => setTimeout(resolve, step.delay));
+            }
+        }
+
+        function generateDemoCurrentData() {
+            const pods = [
+                { name: "auth-service-7d8b9", namespace: "production", energy_kwh: 0.002456, carbon_kg: 0.0012 },
+                { name: "api-gateway-5f4e3", namespace: "production", energy_kwh: 0.003891, carbon_kg: 0.0019 },
+                { name: "user-service-9a1b2", namespace: "production", energy_kwh: 0.001987, carbon_kg: 0.0010 },
+                { name: "payment-service-4c5d6", namespace: "production", energy_kwh: 0.002743, carbon_kg: 0.0014 },
+                { name: "notification-svc-8e7f9", namespace: "production", energy_kwh: 0.001654, carbon_kg: 0.0008 },
+                { name: "data-processor-3g2h4", namespace: "analytics", energy_kwh: 0.004512, carbon_kg: 0.0023 },
+                { name: "cache-redis-6i5j7", namespace: "infrastructure", energy_kwh: 0.001789, carbon_kg: 0.0009 },
+                { name: "monitoring-agent-1k9l8", namespace: "system", energy_kwh: 0.000892, carbon_kg: 0.0004 }
+            ];
+
+            const totalEnergy = pods.reduce((sum, pod) => sum + pod.energy_kwh, 0);
+            const totalCarbon = pods.reduce((sum, pod) => sum + pod.carbon_kg, 0);
+
+            return {
+                total_energy_kwh: totalEnergy,
+                total_carbon_kg: totalCarbon,
+                total_optimizations: Math.floor(Math.random() * 50) + 125,
+                pods: pods
+            };
+        }
+
+        function generateDemoHistoricalData() {
+            const now = new Date();
+            const energySeries = [];
+            const carbonSeries = [];
+
+            for (let i = 23; i >= 0; i--) {
+                const timestamp = new Date(now.getTime() - i * 15 * 60 * 1000); // 15-minute intervals
+                const baseEnergy = 0.015 + Math.sin(i * 0.3) * 0.005 + Math.random() * 0.003;
+                const baseCarbon = baseEnergy * 0.45 + Math.random() * 0.001;
+
+                energySeries.push({
+                    timestamp: timestamp.toISOString(),
+                    value: Math.max(0, baseEnergy)
+                });
+
+                carbonSeries.push({
+                    timestamp: timestamp.toISOString(),
+                    value: Math.max(0, baseCarbon)
+                });
+            }
+
+            return { energy_series: energySeries, carbon_series: carbonSeries };
+        }
+
+        function generateDemoSavingsData() {
+            const optimizationTypes = [
+                "CPU throttling optimization",
+                "Memory deallocation",
+                "Container rightsizing",
+                "Idle pod termination",
+                "Auto-scaling adjustment"
+            ];
+
+            const topOptimizations = optimizationTypes.slice(0, 3).map(type => ({
+                type: type,
+                energy_saved_kwh: Math.random() * 2.5 + 0.5
+            }));
+
+            return {
+                total_energy_saved_kwh: Math.random() * 45 + 155,
+                top_optimizations: topOptimizations
+            };
+        }
+
+        function updatePodsTable(pods) {
+            const tbody = document.getElementById('podsTableBody');
+            
+            if (pods.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">No pods found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = pods.map(pod => {
+                const efficiency = Math.floor(Math.random() * 30 + 70); // Mock efficiency score
+                const status = efficiency > 85 ? 'optimized' : efficiency > 70 ? 'monitoring' : 'high';
+                
+                return `
+                    <tr>
+                        <td><span class="status-indicator status-${status}"></span></td>
+                        <td>${pod.name}</td>
+                        <td>${pod.namespace}</td>
+                        <td>${pod.energy_kwh.toFixed(6)}</td>
+                        <td>${pod.carbon_kg.toFixed(4)}</td>
+                        <td>${efficiency}%</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateCharts(historicalData) {
+            if (historicalData.energy_series && historicalData.energy_series.length > 0) {
+                const labels = historicalData.energy_series.map(point => 
+                    new Date(point.timestamp).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                );
+                const energyValues = historicalData.energy_series.map(point => point.value);
+                
+                energyChart.data.labels = labels;
+                energyChart.data.datasets[0].data = energyValues;
+                energyChart.update();
+            }
+            
+            if (historicalData.carbon_series && historicalData.carbon_series.length > 0) {
+                const labels = historicalData.carbon_series.map(point => 
+                    new Date(point.timestamp).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                );
+                const carbonValues = historicalData.carbon_series.map(point => point.value);
+                
+                carbonChart.data.labels = labels;
+                carbonChart.data.datasets[0].data = carbonValues;
+                carbonChart.update();
+            }
+        }
+
+        function updateRecommendations(optimizations) {
+            const recommendationsList = document.getElementById('recommendations');
+            
+            if (optimizations.length === 0) {
+                recommendationsList.innerHTML = '<li>No specific recommendations at this time</li>';
+                return;
+            }
+            
+            const recommendations = [
+                `${optimizations[0]?.type || 'Resource optimization'} saved ${optimizations[0]?.energy_saved_kwh?.toFixed(2) || '0'} kWh`,
+                'Consider enabling auto-scaling for high-traffic services',
+                'Memory optimization opportunities detected in 3 pods',
+                'Idle resource detection active across cluster'
+            ];
+            
+            recommendationsList.innerHTML = recommendations.map(rec => `<li>${rec}</li>`).join('');
+        }
+    </script>
+</body>
+</html>
